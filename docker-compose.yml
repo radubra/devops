@@ -1,0 +1,67 @@
+version: '2'
+services:
+  redis:
+    build: containers/redis
+  php_1:
+    build: containers/php
+    environment:
+     APACHE_LOG_DIR: /var/log/php_app
+    links:
+      - redis
+      - logstash
+      - php-fpm
+    depends_on:
+      - redis
+      - logstash
+      - php-fpm
+  php_2:
+    build: containers/php
+    environment:
+     APACHE_LOG_DIR: /var/log/php_app
+    links:
+      - redis
+      - logstash
+      - php-fpm
+    depends_on:
+      - redis
+      - logstash
+      - php-fpm
+  php-fpm:
+    build: containers/php-fpm
+    links:
+      - redis
+  lb:
+    build: containers/haproxy
+    ports:
+    - "8089:80"
+    links:
+      - php_1
+      - php_2
+  jenkins:
+    build: containers/jenkins
+    ports:
+    - "8083:8080"
+    links:
+      - elasticsearch
+    depends_on:
+      - logstash
+  elasticsearch:
+    build: containers/elasticsearch
+    ports:
+    - "9200:9200"
+  kibana:
+    build: containers/kibana
+    ports:
+    - "5601:5601"
+    links:
+      - elasticsearch
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+  logstash:
+    build: containers/logstash
+    links:
+      - elasticsearch
+    environment:
+      xpack.monitoring.elasticsearch.url: http://elasticsearch:9200
